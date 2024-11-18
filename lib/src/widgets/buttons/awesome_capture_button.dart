@@ -39,6 +39,7 @@ class _AwesomeCaptureButtonState extends State<AwesomeCaptureButton>
 
   @override
   void dispose() {
+    // Dispose of the AnimationController to free up resources
     _animationController.dispose();
     super.dispose();
   }
@@ -74,35 +75,46 @@ class _AwesomeCaptureButtonState extends State<AwesomeCaptureButton>
     );
   }
 
-  _onTapDown(TapDownDetails details) {
+  void _onTapDown(TapDownDetails details) {
     HapticFeedback.selectionClick();
     _animationController.forward();
   }
 
-  _onTapUp(TapUpDetails details) {
+  void _onTapUp(TapUpDetails details) {
+    // Ensure reverse is called only if the controller is still active
     Future.delayed(_duration, () {
-      _animationController.reverse();
+      if (mounted && _animationController.isAnimating) {
+        _animationController.reverse();
+      }
     });
 
-    onTap.call();
+    _handleTap();
   }
 
-  _onTapCancel() {
-    _animationController.reverse();
+  void _onTapCancel() {
+    // Ensure reverse is called only if the controller is still active
+    if (_animationController.isAnimating) {
+      _animationController.reverse();
+    }
   }
 
-  get onTap => () {
-        widget.state.when(
-          onPhotoMode: (photoState) => photoState.takePhoto(),
-          onVideoMode: (videoState) => videoState.startRecording(),
-          onVideoRecordingMode: (videoState) => videoState.stopRecording(),
-        );
-      };
+  void _handleTap() {
+    widget.state.when(
+      onPhotoMode: (photoState) {
+        photoState.takePhoto();
+      },
+      onVideoMode: (videoState) {
+        videoState.startRecording();
+      },
+      onVideoRecordingMode: (videoState) {
+        videoState.stopRecording();
+      },
+      onPreparingCamera: (_) {},
+    );
+  }
 }
 
 class CameraButtonPainter extends CustomPainter {
-  CameraButtonPainter();
-
   @override
   void paint(Canvas canvas, Size size) {
     var bgPainter = Paint()
@@ -110,7 +122,7 @@ class CameraButtonPainter extends CustomPainter {
       ..isAntiAlias = true;
     var radius = size.width / 2;
     var center = Offset(size.width / 2, size.height / 2);
-    bgPainter.color = Colors.white.withOpacity(.5);
+    bgPainter.color = Colors.white.withOpacity(0.5);
     canvas.drawCircle(center, radius, bgPainter);
 
     bgPainter.color = Colors.white;
@@ -124,9 +136,7 @@ class CameraButtonPainter extends CustomPainter {
 class VideoButtonPainter extends CustomPainter {
   final bool isRecording;
 
-  VideoButtonPainter({
-    this.isRecording = false,
-  });
+  VideoButtonPainter({this.isRecording = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -135,21 +145,23 @@ class VideoButtonPainter extends CustomPainter {
       ..isAntiAlias = true;
     var radius = size.width / 2;
     var center = Offset(size.width / 2, size.height / 2);
-    bgPainter.color = Colors.white.withOpacity(.5);
+    bgPainter.color = Colors.white.withOpacity(0.5);
     canvas.drawCircle(center, radius, bgPainter);
 
     if (isRecording) {
       bgPainter.color = Colors.red;
       canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(
-                17,
-                17,
-                size.width - (17 * 2),
-                size.height - (17 * 2),
-              ),
-              const Radius.circular(12.0)),
-          bgPainter);
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            17,
+            17,
+            size.width - (17 * 2),
+            size.height - (17 * 2),
+          ),
+          const Radius.circular(12.0),
+        ),
+        bgPainter,
+      );
     } else {
       bgPainter.color = Colors.red;
       canvas.drawCircle(center, radius - 8, bgPainter);

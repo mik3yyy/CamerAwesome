@@ -36,11 +36,6 @@ class AwesomeBottomActions extends StatelessWidget {
                     final theme = AwesomeThemeProvider.of(context).theme;
                     return AwesomeCameraSwitchButton(
                       state: state,
-                      theme: theme.copyWith(
-                        buttonTheme: theme.buttonTheme.copyWith(
-                          backgroundColor: Colors.white12,
-                        ),
-                      ),
                     );
                   })),
         right = right ??

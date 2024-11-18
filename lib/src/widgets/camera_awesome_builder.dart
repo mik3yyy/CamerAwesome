@@ -5,6 +5,7 @@ import 'package:camerawesome/pigeon.dart';
 import 'package:camerawesome/src/orchestrator/camera_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:camerawesome/src/camera_controller.dart'; // Import the CameraController
 
 /// This is the builder for your camera interface
 /// Using the [state] you can do anything you need without having to think about the camera flow
@@ -118,6 +119,8 @@ class CameraAwesomeBuilder extends StatefulWidget {
   /// You can use it to do whatever you want once a media has been saved
   final OnMediaCaptureEvent? onMediaCaptureEvent;
 
+  final CameraController? controller;
+
   const CameraAwesomeBuilder._({
     required this.sensorConfig,
     required this.enablePhysicalButton,
@@ -139,52 +142,32 @@ class CameraAwesomeBuilder extends StatefulWidget {
     required this.pictureInPictureConfigBuilder,
     this.availableFilters,
     this.onMediaCaptureEvent,
+    this.controller, // Initialize the controller
   });
-
-  /// Use the camera with the built-in interface.
-  ///
-  /// You need to provide a [SaveConfig] to define if you want to take
-  /// photos, videos or both and where to save them.
-  ///
-  /// You can initiate the camera with a few parameters through the [SensorConfig]:
-  /// - which [sensors] to use ([front] or [back])
-  /// - which [flashMode] to use
-  /// - how much zoom you want (0.0 = no zoom, 1.0 = max zoom)
-  ///
-  /// If you want to customize the UI of the camera, you have several options:
-  /// - use a [progressIndicator] and define what to do when the preview of the
-  /// last media taken is tapped thanks to [onMediaTap]
-  /// - use [topActionsBuilder], [bottomActionsBuilder], and
-  /// [middleContentBuilder] which let you build entirely the UI similarly to
-  /// how the built-in UI is done. Check [AwesomeCameraLayout] for more details.
-  /// - build your UI entirely thanks to the [custom] constructor.
-  ///
-  /// If you want to do image analysis (for AI for instance), you can set the
-  /// [imageAnaysisConfig] and listen to the stream of images with
-  /// [onImageForAnalysis].
-  CameraAwesomeBuilder.awesome(
-      {SensorConfig? sensorConfig,
-      bool enablePhysicalButton = false,
-      Widget? progressIndicator,
-      required SaveConfig saveConfig,
-      Function(MediaCapture)? onMediaTap,
-      OnImageForAnalysis? onImageForAnalysis,
-      AnalysisConfig? imageAnalysisConfig,
-      OnPreviewTap Function(CameraState)? onPreviewTapBuilder,
-      OnPreviewScale Function(CameraState)? onPreviewScaleBuilder,
-      CameraPreviewFit? previewFit,
-      CameraLayoutBuilder? previewDecoratorBuilder,
-      AwesomeTheme? theme,
-      Widget Function(CameraState state)? topActionsBuilder,
-      Widget Function(CameraState state)? bottomActionsBuilder,
-      Widget Function(CameraState state)? middleContentBuilder,
-      EdgeInsets previewPadding = EdgeInsets.zero,
-      Alignment previewAlignment = Alignment.center,
-      PictureInPictureConfigBuilder? pictureInPictureConfigBuilder,
-      AwesomeFilter? defaultFilter,
-      List<AwesomeFilter>? availableFilters,
-      OnMediaCaptureEvent? onMediaCaptureEvent})
-      : this._(
+  CameraAwesomeBuilder.awesome({
+    SensorConfig? sensorConfig,
+    bool enablePhysicalButton = false,
+    Widget? progressIndicator,
+    required SaveConfig saveConfig,
+    Function(MediaCapture)? onMediaTap,
+    OnImageForAnalysis? onImageForAnalysis,
+    AnalysisConfig? imageAnalysisConfig,
+    OnPreviewTap Function(CameraState)? onPreviewTapBuilder,
+    OnPreviewScale Function(CameraState)? onPreviewScaleBuilder,
+    CameraPreviewFit? previewFit,
+    CameraLayoutBuilder? previewDecoratorBuilder,
+    AwesomeTheme? theme,
+    Widget Function(CameraState state)? topActionsBuilder,
+    Widget Function(CameraState state)? bottomActionsBuilder,
+    Widget Function(CameraState state)? middleContentBuilder,
+    EdgeInsets previewPadding = EdgeInsets.zero,
+    Alignment previewAlignment = Alignment.center,
+    PictureInPictureConfigBuilder? pictureInPictureConfigBuilder,
+    AwesomeFilter? defaultFilter,
+    List<AwesomeFilter>? availableFilters,
+    OnMediaCaptureEvent? onMediaCaptureEvent,
+    CameraController? controller, // Add controller parameter
+  }) : this._(
           sensorConfig: sensorConfig ??
               SensorConfig.single(
                 sensor: Sensor.position(SensorPosition.back),
@@ -215,125 +198,7 @@ class CameraAwesomeBuilder extends StatefulWidget {
           defaultFilter: defaultFilter,
           availableFilters: availableFilters ?? awesomePresetFiltersList,
           onMediaCaptureEvent: onMediaCaptureEvent,
-        );
-
-  /// 🚧 Experimental
-  ///
-  /// Documentation on its way, API might change
-  CameraAwesomeBuilder.custom({
-    SensorConfig? sensorConfig,
-    bool mirrorFrontCamera = false,
-    bool enablePhysicalButton = false,
-    Widget? progressIndicator,
-    required CameraLayoutBuilder builder,
-    required SaveConfig saveConfig,
-    AwesomeFilter? filter,
-    OnImageForAnalysis? onImageForAnalysis,
-    AnalysisConfig? imageAnalysisConfig,
-    OnPreviewTap Function(CameraState)? onPreviewTapBuilder,
-    OnPreviewScale Function(CameraState)? onPreviewScaleBuilder,
-    CameraPreviewFit? previewFit,
-    AwesomeTheme? theme,
-    EdgeInsets previewPadding = EdgeInsets.zero,
-    Alignment previewAlignment = Alignment.center,
-    PictureInPictureConfigBuilder? pictureInPictureConfigBuilder,
-    List<AwesomeFilter>? filters,
-    OnMediaCaptureEvent? onMediaCaptureEvent,
-  }) : this._(
-          sensorConfig: sensorConfig ??
-              SensorConfig.single(
-                sensor: Sensor.position(SensorPosition.back),
-              ),
-          enablePhysicalButton: enablePhysicalButton,
-          progressIndicator: progressIndicator,
-          builder: builder,
-          saveConfig: saveConfig,
-          onMediaTap: null,
-          defaultFilter: filter,
-          onImageForAnalysis: onImageForAnalysis,
-          imageAnalysisConfig: imageAnalysisConfig,
-          onPreviewTapBuilder: onPreviewTapBuilder,
-          onPreviewScaleBuilder: onPreviewScaleBuilder,
-          previewFit: previewFit ?? CameraPreviewFit.cover,
-          previewDecoratorBuilder: null,
-          theme: theme ?? AwesomeTheme(),
-          previewPadding: previewPadding,
-          previewAlignment: previewAlignment,
-          pictureInPictureConfigBuilder: pictureInPictureConfigBuilder,
-          availableFilters: filters,
-          onMediaCaptureEvent: onMediaCaptureEvent,
-        );
-
-  /// Use this constructor when you don't want to take pictures or record videos.
-  /// You can still do image analysis.
-  CameraAwesomeBuilder.previewOnly({
-    SensorConfig? sensorConfig,
-    Widget? progressIndicator,
-    required CameraLayoutBuilder builder,
-    AwesomeFilter? filter,
-    OnImageForAnalysis? onImageForAnalysis,
-    AnalysisConfig? imageAnalysisConfig,
-    OnPreviewTap Function(CameraState)? onPreviewTapBuilder,
-    OnPreviewScale Function(CameraState)? onPreviewScaleBuilder,
-    CameraPreviewFit? previewFit,
-    EdgeInsets previewPadding = EdgeInsets.zero,
-    Alignment previewAlignment = Alignment.center,
-    PictureInPictureConfigBuilder? pictureInPictureConfigBuilder,
-  }) : this._(
-          sensorConfig: sensorConfig ??
-              SensorConfig.single(sensor: Sensor.position(SensorPosition.back)),
-          enablePhysicalButton: false,
-          progressIndicator: progressIndicator,
-          builder: builder,
-          saveConfig: null,
-          onMediaTap: null,
-          defaultFilter: filter,
-          onImageForAnalysis: onImageForAnalysis,
-          imageAnalysisConfig: imageAnalysisConfig,
-          onPreviewTapBuilder: onPreviewTapBuilder,
-          onPreviewScaleBuilder: onPreviewScaleBuilder,
-          previewFit: previewFit ?? CameraPreviewFit.cover,
-          previewDecoratorBuilder: null,
-          theme: AwesomeTheme(),
-          previewPadding: previewPadding,
-          previewAlignment: previewAlignment,
-          pictureInPictureConfigBuilder: pictureInPictureConfigBuilder,
-        );
-
-  /// Use this constructor when you only want to do image analysis.
-  ///
-  /// E.g.: QR code detection, barcode detection, face detection, etc.
-  ///
-  /// You can't take pictures or record videos and the preview won't be displayed.
-  /// You may still show the image from the analysis by converting it to JPEG
-  /// and  displaying that JPEG image.
-  CameraAwesomeBuilder.analysisOnly({
-    SensorConfig? sensorConfig,
-    CameraAspectRatios aspectRatio = CameraAspectRatios.ratio_4_3,
-    Widget? progressIndicator,
-    required CameraLayoutBuilder builder,
-    required OnImageForAnalysis onImageForAnalysis,
-    AnalysisConfig? imageAnalysisConfig,
-  }) : this._(
-          sensorConfig: sensorConfig ??
-              SensorConfig.single(sensor: Sensor.position(SensorPosition.back)),
-          enablePhysicalButton: false,
-          progressIndicator: progressIndicator,
-          builder: builder,
-          saveConfig: null,
-          onMediaTap: null,
-          defaultFilter: null,
-          onImageForAnalysis: onImageForAnalysis,
-          imageAnalysisConfig: imageAnalysisConfig,
-          onPreviewTapBuilder: null,
-          onPreviewScaleBuilder: null,
-          previewFit: CameraPreviewFit.cover,
-          previewDecoratorBuilder: null,
-          theme: AwesomeTheme(),
-          previewPadding: EdgeInsets.zero,
-          previewAlignment: Alignment.center,
-          showPreview: false,
-          pictureInPictureConfigBuilder: null,
+          controller: controller, // Pass the controller
         );
 
   @override
@@ -353,12 +218,19 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
     WidgetsBinding.instance.removeObserver(this);
     _cameraContext.dispose();
     _captureStateListener?.cancel();
+    widget.controller?.dispose(); // Dispose the controller if provided
+
     super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant CameraAwesomeBuilder oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller &&
+        widget.controller != null) {
+      print("CameraAwesomeBuilder: Updating controller.");
+      widget.controller!.init(_cameraContext);
+    }
   }
 
   @override
@@ -406,13 +278,26 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
       availableFilters: widget.availableFilters,
     );
 
+    // Initialize the controller with the CameraContext
+    if (widget.controller != null) {
+      print("CameraAwesomeBuilder: Initializing CameraController.");
+      widget.controller!.init(_cameraContext);
+    }
+
     // Initial CameraState is always PreparingState
-    _cameraContext.state.when(onPreparingCamera: (mode) => mode.start());
+    print("CameraAwesomeBuilder: Starting camera preparation.");
+    _cameraContext.state.when(onPreparingCamera: (mode) {
+      print("CameraAwesomeBuilder: Starting camera.");
+      mode.start();
+    });
 
     _captureStateListener = _cameraContext.captureState$.listen((mediaCapture) {
       if (mediaCapture != null) {
+        print("CameraAwesomeBuilder: Media captured: $mediaCapture");
         widget.onMediaCaptureEvent?.call(mediaCapture);
       }
+    }, onError: (error) {
+      print("CameraAwesomeBuilder: Error in captureState: $error");
     });
   }
 
@@ -442,6 +327,8 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
                       )
                     : AwesomeCameraPreview(
                         key: _cameraPreviewKey,
+                        controller: widget.controller, // Pass the controller
+
                         previewFit: widget.previewFit,
                         state: snapshot.requireData,
                         padding: widget.previewPadding,

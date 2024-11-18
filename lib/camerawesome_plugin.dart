@@ -18,6 +18,7 @@ export 'src/orchestrator/states/states.dart';
 export 'src/widgets/camera_awesome_builder.dart';
 export 'src/orchestrator/analysis/analysis_to_image.dart';
 export 'src/orchestrator/models/analysis/analysis_canvas.dart';
+export 'src/camera_controller.dart'; // Export the CameraController
 
 // filters
 export 'src/orchestrator/models/filters/awesome_filters.dart';
@@ -25,30 +26,31 @@ export 'src/orchestrator/models/filters/awesome_filters.dart';
 // built in widgets
 export 'src/widgets/widgets.dart';
 
+export 'src/widgets/buttons/buttons.dart';
+
 // ignore: public_member_api_docs
 enum CameraRunningState { starting, started, stopping, stopped }
 
 /// Don't use this class directly. Instead, use [CameraAwesomeBuilder].
 class CamerawesomePlugin {
-  static const EventChannel _orientationChannel =
+  static const EventChannel orientationChannel =
       EventChannel('camerawesome/orientation');
 
-  static const EventChannel _permissionsChannel =
+  static const EventChannel permissionsChannel =
       EventChannel('camerawesome/permissions');
 
-  static const EventChannel _imagesChannel =
-      EventChannel('camerawesome/images');
+  static const EventChannel imagesChannel = EventChannel('camerawesome/images');
 
-  static const EventChannel _physicalButtonChannel =
+  static const EventChannel physicalButtonChannel =
       EventChannel('camerawesome/physical_button');
 
-  static Stream<CameraOrientations>? _orientationStream;
+  static Stream<CameraOrientations>? orientationStream;
 
-  static Stream<CameraPhysicalButton>? _physicalButtonStream;
+  static Stream<CameraPhysicalButton>? physicalButtonStream;
 
-  static Stream<bool>? _permissionsStream;
+  static Stream<bool>? permissionsStream;
 
-  static Stream<Map<String, dynamic>>? _imagesStream;
+  static Stream<Map<String, dynamic>>? imagesStream;
 
   static CameraRunningState currentState = CameraRunningState.stopped;
 
@@ -78,7 +80,7 @@ class CamerawesomePlugin {
         currentState == CameraRunningState.stopping) {
       return true;
     }
-    _orientationStream = null;
+    orientationStream = null;
     currentState = CameraRunningState.stopping;
     bool res;
     try {
@@ -91,7 +93,7 @@ class CamerawesomePlugin {
   }
 
   static Stream<CameraOrientations>? getNativeOrientation() {
-    _orientationStream ??= _orientationChannel
+    orientationStream ??= orientationChannel
         .receiveBroadcastStream('orientationChannel')
         .transform(StreamTransformer<dynamic, CameraOrientations>.fromHandlers(
             handleData: (data, sink) {
@@ -113,11 +115,11 @@ class CamerawesomePlugin {
       }
       sink.add(newOrientation!);
     }));
-    return _orientationStream;
+    return orientationStream;
   }
 
   static Stream<CameraPhysicalButton>? listenPhysicalButton() {
-    _physicalButtonStream ??= _physicalButtonChannel
+    physicalButtonStream ??= physicalButtonChannel
         .receiveBroadcastStream('physicalButtonChannel')
         .transform(
             StreamTransformer<dynamic, CameraPhysicalButton>.fromHandlers(
@@ -134,17 +136,17 @@ class CamerawesomePlugin {
       }
       sink.add(physicalButton!);
     }));
-    return _physicalButtonStream;
+    return physicalButtonStream;
   }
 
   static Stream<bool>? listenPermissionResult() {
-    _permissionsStream ??= _permissionsChannel
+    permissionsStream ??= permissionsChannel
         .receiveBroadcastStream('permissionsChannel')
         .transform(StreamTransformer<dynamic, bool>.fromHandlers(
             handleData: (data, sink) {
       sink.add(data);
     }));
-    return _permissionsStream;
+    return permissionsStream;
   }
 
   static Future<void> setupAnalysis({
@@ -162,15 +164,15 @@ class CamerawesomePlugin {
   }
 
   static Stream<Map<String, dynamic>>? listenCameraImages() {
-    _imagesStream ??=
-        _imagesChannel.receiveBroadcastStream('imagesChannel').transform(
+    imagesStream ??=
+        imagesChannel.receiveBroadcastStream('imagesChannel').transform(
       StreamTransformer<dynamic, Map<String, dynamic>>.fromHandlers(
         handleData: (data, sink) {
           sink.add(Map<String, dynamic>.from(data));
         },
       ),
     );
-    return _imagesStream;
+    return imagesStream;
   }
 
   static Future receivedImageFromStream() {

@@ -1,128 +1,218 @@
+// File: lib/src/widgets/preview/awesome_camera_preview.dart
+
+import 'dart:async';
 import 'dart:io';
 
-import 'package:camera_app/widgets/mini_video_player.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
+import 'package:camerawesome/pigeon.dart';
+import 'package:camerawesome/src/orchestrator/camera_context.dart';
+import 'package:camerawesome/src/orchestrator/models/sensor_config.dart';
+import 'package:camerawesome/src/orchestrator/models/camera_flashes.dart';
+import 'package:camerawesome/src/orchestrator/models/sensors.dart';
+import 'package:camerawesome/src/orchestrator/states/camera_state.dart';
+import 'package:camerawesome/src/widgets/preview/hole_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:camerawesome/src/camera_controller.dart'; // Import the CameraController
 
-class CustomMediaPreview extends StatelessWidget {
-  final MediaCapture? mediaCapture;
-  final OnMediaTap onMediaTap;
+enum CameraPreviewFit {
+  fitWidth,
+  fitHeight,
+  contain,
+  cover,
+}
 
-  const CustomMediaPreview({
+/// This is a fullscreen camera preview
+/// some part of the preview are cropped so we have a full sized camera preview
+class AwesomeCameraPreview extends StatefulWidget {
+  final CameraPreviewFit previewFit;
+  final Widget? loadingWidget;
+  final CameraState state;
+  final OnPreviewTap? onPreviewTap;
+  final OnPreviewScale? onPreviewScale;
+  final CameraLayoutBuilder interfaceBuilder;
+  final CameraLayoutBuilder? previewDecoratorBuilder;
+  final EdgeInsets padding;
+  final Alignment alignment;
+
+  final PictureInPictureConfigBuilder? pictureInPictureConfigBuilder;
+
+  /// **New**: CameraController to control camera actions
+  final CameraController? controller;
+
+  const AwesomeCameraPreview({
     super.key,
-    required this.mediaCapture,
-    required this.onMediaTap,
+    this.loadingWidget,
+    required this.state,
+    this.onPreviewTap,
+    this.onPreviewScale,
+    this.previewFit = CameraPreviewFit.cover,
+    required this.interfaceBuilder,
+    this.previewDecoratorBuilder,
+    required this.padding,
+    required this.alignment,
+    this.pictureInPictureConfigBuilder,
+    this.controller, // Initialize the controller
   });
 
   @override
-  Widget build(BuildContext context) {
-    return AwesomeOrientedWidget(
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: AwesomeBouncingWidget(
-          onTap: mediaCapture != null && onMediaTap != null
-              ? () => onMediaTap!(mediaCapture!)
-              : null,
-          child: ClipOval(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white10,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white38,
-                  width: 2,
-                ),
-              ),
-              child: Container(
-                color: Colors.transparent,
-                child: _buildMedia(mediaCapture),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  State<StatefulWidget> createState() {
+    return AwesomeCameraPreviewState();
+  }
+}
+
+class AwesomeCameraPreviewState extends State<AwesomeCameraPreview> {
+  PreviewSize? _previewSize;
+
+  final List<Texture> _textures = [];
+
+  PreviewSize? get pixelPreviewSize => _previewSize;
+
+  StreamSubscription? _sensorConfigSubscription;
+  StreamSubscription? _aspectRatioSubscription;
+  CameraAspectRatios? _aspectRatio;
+  double? _aspectRatioValue;
+  Preview? _preview;
+
+  // **New**: Reference to CameraController
+  CameraController? _cameraController;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.wait([
+      widget.state.previewSize(0),
+      _loadTextures(),
+    ]).then((data) {
+      if (mounted) {
+        setState(() {
+          _previewSize = data[0];
+        });
+      }
+    });
+
+    // Assign the controller
+    _cameraController = widget.controller;
+
+    // Listen to sensor config changes
+    _sensorConfigSubscription =
+        widget.state.sensorConfig$.listen((sensorConfig) {
+      _aspectRatioSubscription?.cancel();
+      _aspectRatioSubscription =
+          sensorConfig.aspectRatio$.listen((event) async {
+        final previewSize = await widget.state.previewSize(0);
+        if ((_previewSize != previewSize || _aspectRatio != event) && mounted) {
+          setState(() {
+            _aspectRatio = event;
+            switch (event) {
+              case CameraAspectRatios.ratio_16_9:
+                _aspectRatioValue = 16 / 9;
+                break;
+              case CameraAspectRatios.ratio_4_3:
+                _aspectRatioValue = 4 / 3;
+                break;
+              case CameraAspectRatios.ratio_1_1:
+                _aspectRatioValue = 1;
+                break;
+            }
+            _previewSize = previewSize;
+          });
+        }
+      });
+    });
+
+    // **Optional**: Listen to CameraState changes via the controller
+    if (_cameraController != null) {
+      _cameraController!.currentCameraState?.when(
+        onVideoRecordingMode: (_) {
+          // Handle state if needed
+        },
+      );
+    }
   }
 
-  Widget _buildMedia(MediaCapture? mediaCapture) {
-    switch (mediaCapture?.status) {
-      case MediaCaptureStatus.capturing:
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Platform.isIOS
-                ? const CupertinoActivityIndicator(color: Colors.white)
-                : const CircularProgressIndicator(color: Colors.white),
-          ),
+  Future _loadTextures() async {
+    // Get the number of sensors
+    final sensors = widget.state.cameraContext.sensorConfig.sensors.length;
+
+    for (int i = 0; i < sensors; i++) {
+      final textureId = await widget.state.previewTextureId(i);
+      if (textureId != null) {
+        _textures.add(
+          Texture(textureId: textureId),
         );
-      case MediaCaptureStatus.success:
-        if (mediaCapture!.isPicture) {
-          if (kIsWeb) {
-            // TODO Check if that works
-            return FutureBuilder<Uint8List>(
-                future: mediaCapture.captureRequest.when(
-                  single: (single) => single.file!.readAsBytes(),
-                  multiple: (multiple) =>
-                      multiple.fileBySensor.values.first!.readAsBytes(),
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _sensorConfigSubscription?.cancel();
+    _aspectRatioSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_textures.isEmpty || _previewSize == null || _aspectRatio == null) {
+      return widget.loadingWidget ??
+          Center(
+            child: Platform.isIOS
+                ? const CupertinoActivityIndicator()
+                : const CircularProgressIndicator(),
+          );
+    }
+
+    bool isCurrentlyRecording = widget.state.when(
+      onVideoRecordingMode: (_) => true,
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: HoleWidget(
+              child: FittedBox(
+                fit: BoxFit.cover, // Ensure the video preview fills the circle
+                child: SizedBox(
+                  width: _previewSize!.width,
+                  height: _previewSize!.height,
+                  child: _textures.first,
                 ),
-                builder: (_, snapshot) {
-                  if (snapshot.hasData) {
-                    return Image.memory(
-                      snapshot.requireData,
-                      fit: BoxFit.cover,
-                      width: 300,
-                    );
-                  } else {
-                    return Platform.isIOS
-                        ? const CupertinoActivityIndicator(
-                            color: Colors.white,
-                          )
-                        : const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.0,
-                            ),
-                          );
-                  }
-                });
-          } else {
-            return Image(
-              fit: BoxFit.cover,
-              image: ResizeImage(
-                FileImage(
-                  File(
-                    mediaCapture.captureRequest.when(
-                      single: (single) => single.file!.path,
-                      multiple: (multiple) =>
-                          multiple.fileBySensor.values.first!.path,
-                    ),
-                  ),
-                ),
-                width: 300,
-              ),
-            );
-          }
-        } else {
-          return Ink(
-            child: MiniVideoPlayer(
-              filePath: mediaCapture.captureRequest.when(
-                single: (single) => single.file!.path,
-                multiple: (multiple) =>
-                    multiple.fileBySensor.values.first!.path,
               ),
             ),
-          );
-        }
-      case MediaCaptureStatus.failure:
-        return const Icon(Icons.error);
-      case null:
-        return const SizedBox(
-          width: 32,
-          height: 32,
-        );
-    }
+          ),
+
+          // Bottom Action Bar
+          Positioned(
+            bottom: 20,
+            left: 20,
+            right: 20,
+            child: Row(
+              mainAxisAlignment: isCurrentlyRecording
+                  ? MainAxisAlignment.spaceBetween
+                  : MainAxisAlignment.center,
+              children: [
+                // Flashlight Button
+                if (isCurrentlyRecording)
+                  AwesomeFlashButton(state: widget.state),
+
+                // Capture Button
+                AwesomeCaptureButton(state: widget.state),
+
+                // Camera Switch Button
+                if (isCurrentlyRecording)
+                  AwesomeCameraSwitchButton(state: widget.state),
+              ],
+            ),
+          ),
+        ],
+      ),
+      // Optionally, you can remove the bottomSheet if not needed
+      // bottomSheet: ...,
+    );
   }
 }
