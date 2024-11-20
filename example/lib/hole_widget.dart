@@ -4,14 +4,15 @@ import 'package:flutter/material.dart';
 
 class HoleWidget extends StatelessWidget {
   final Widget? child;
-
-  const HoleWidget({required this.child, Key? key}) : super(key: key);
+  final double? radius;
+  const HoleWidget({required this.child, this.radius, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: ClipPath(
-        clipper: HoleClipper(),
+        clipper: HoleClipper(radius: radius),
         child: Container(
           // width: 300,
 
@@ -27,14 +28,16 @@ class HoleWidget extends StatelessWidget {
 }
 
 class HoleClipper extends CustomClipper<Path> {
-  @override
+  final double? radius;
+
+  HoleClipper({super.reclip, required this.radius});
   @override
   Path getClip(Size size) {
     final path = Path()
       ..addOval(Rect.fromCircle(
         center: Offset(size.width / 2, size.height / 2), // Center of the widget
 
-        radius: 185, // Radius of the circle
+        radius: radius ?? 185, // Radius of the circle
       )); // Makes the circle a "hole"
 
     return path;

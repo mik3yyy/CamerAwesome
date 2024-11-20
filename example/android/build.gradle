@@ -3,6 +3,8 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        jcenter()
+
     }
 
     dependencies {
@@ -28,4 +30,7 @@ subprojects {
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
+}
+ext {
+    flutterFFmpegPackage  = "flutter_ffmpeg_full_gpl"
 }

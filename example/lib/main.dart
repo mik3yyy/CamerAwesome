@@ -1,5 +1,6 @@
 import 'package:camera_app/overlay_screen.dart';
 import 'package:camera_app/timer_controller.dart';
+import 'package:camera_app/utils/file_utils.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/src/widgets/preview/hole_widget.dart';
 import 'package:flutter/cupertino.dart';
@@ -8,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:vibration/vibration.dart';
 import 'widgets/mini_video_player.dart';
 import 'package:camerawesome/src/camera_controller.dart';
 
@@ -161,6 +161,8 @@ class _CameraPageState extends State<CameraPage> {
   double lockObs = 0;
   @override
   Widget build(BuildContext context) {
+    // requestPermission();
+    // print("object");
     if (_videoPath != null) {
       return Scaffold(
         body: Center(
@@ -168,11 +170,10 @@ class _CameraPageState extends State<CameraPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Circular video player
-              HoleWidget(
-                child: MiniVideoPlayer(
-                  filePath: _videoPath!,
-                  autoPlay: true,
-                ),
+              MiniVideoPlayer(
+                show: true,
+                filePath: _videoPath!,
+                autoPlay: true,
               ),
             ],
           ),
@@ -235,7 +236,10 @@ class _CameraPageState extends State<CameraPage> {
                         children: [
                           HoleWidget(
                             radius: currentlyTapped == index ? 150 : 100,
-                            child: MiniVideoPlayer(filePath: recording[index]),
+                            child: MiniVideoPlayer(
+                              filePath: recording[index],
+                              show: false,
+                            ),
                           ),
                         ],
                       ),
@@ -245,6 +249,7 @@ class _CameraPageState extends State<CameraPage> {
               ),
             ),
           ),
+          // if (isCurrentlyRecording)
           IgnorePointer(
             ignoring:
                 !isCurrentlyRecording, // Disable interaction when not recording
@@ -531,3 +536,77 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 }
+
+
+
+// <?xml version="1.0" encoding="UTF-8"?>
+// <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+// <plist version="1.0">
+// <dict>
+// 	<key>CADisableMinimumFrameDurationOnPhone</key>
+// 	<true/>
+// 	<key>CFBundleDevelopmentRegion</key>
+// 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+// 	<key>CFBundleDisplayName</key>
+// 	<string>camerAwesome</string>
+// 	<key>CFBundleExecutable</key>
+// 	<string>$(EXECUTABLE_NAME)</string>
+// 	<key>CFBundleIdentifier</key>
+// 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+// 	<key>CFBundleInfoDictionaryVersion</key>
+// 	<string>6.0</string>
+// 	<key>CFBundleName</key>
+// 	<string>camera_app</string>
+// 	<key>CFBundlePackageType</key>
+// 	<string>APPL</string>
+// 	<key>CFBundleShortVersionString</key>
+// 	<string>$(FLUTTER_BUILD_NAME)</string>
+// 	<key>CFBundleSignature</key>
+// 	<string>????</string>
+// 	<key>CFBundleVersion</key>
+// 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+// 	<key>LSRequiresIPhoneOS</key>
+// 	<true/>
+// 	<key>NSBonjourServices</key>
+// 	<array>
+// 		<string>_dartobservatory._tcp</string>
+// 	</array>
+// 	<key>NSCameraUsageDescription</key>
+// 	<string>i want to use the camera</string>
+// 	<key>NSLocalNetworkUsageDescription</key>
+// 	<string>Looking for local tcp Bonjour service</string>
+// 	<key>NSLocationWhenInUseUsageDescription</key>
+// 	<string>To enable GPS location access for Exif data</string>
+// 	<key>NSMicrophoneUsageDescription</key>
+// 	<string>To enable microphone access when recording video</string>
+// 	<key>UIApplicationSupportsIndirectInputEvents</key>
+// 	<true/>
+// 	<key>UILaunchStoryboardName</key>
+// 	<string>LaunchScreen</string>
+// 	<key>UIMainStoryboardFile</key>
+// 	<string>Main</string>
+// 	<key>UIRequiresFullScreen</key>
+// 	<true/>
+// 	<key>UISupportedInterfaceOrientations</key>
+// 	<array>
+// 		<string>UIInterfaceOrientationPortrait</string>
+// 	</array>
+// 	<key>UISupportedInterfaceOrientations~ipad</key>
+// 	<array>
+// 		<string>UIInterfaceOrientationLandscapeLeft</string>
+// 		<string>UIInterfaceOrientationLandscapeRight</string>
+// 		<string>UIInterfaceOrientationPortrait</string>
+// 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+// 	</array>
+// 	<key>UIViewControllerBasedStatusBarAppearance</key>
+// 	<false/>
+// 	<!-- Permission to add content to the Photo Library -->
+// 	<key>NSPhotoLibraryAddUsageDescription</key>
+// 	<string>This app requires access to your photo library to save videos.</string>
+
+// 	<!-- Permission to access the Photo Library (if needed) -->
+// 	<key>NSPhotoLibraryUsageDescription</key>
+// 	<string>This app requires access to your photo library to select and share videos.</string>
+
+// </dict>
+// </plist>
